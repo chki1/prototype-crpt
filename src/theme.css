@@ -155,10 +155,6 @@ button:active:not(:disabled) { transform: scale(.965); }
 .topbar { top: 12px; margin: 12px 30px 0; height: 64px; padding: 0 18px; border: 1px solid var(--glass-border); border-radius: 25px; background: var(--topbar-glass); box-shadow: inset 0 1px 0 var(--glass-shine), 0 8px 26px var(--glass-shadow), 0 0 0 1px var(--border); backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); }
 .breadcrumb, .breadcrumb > span { color: var(--muted); }
 .breadcrumb strong, .mobile-brand { color: var(--secondary); }
-.base-pill { color: var(--secondary); }
-.base-pill > span { color: var(--cream); }
-.base-pill { padding: 7px 9px; border-radius: 999px; }
-.base-pill:hover { background: var(--control-hover); }
 .search-field { background: var(--control); border-color: var(--border); border-radius: 999px; min-height: 36px; box-shadow: inset 0 1px 0 var(--glass-shine); }
 .search-field, .search-field input::placeholder, .search-field kbd { color: var(--muted); }
 .search-field input { font-size: 11px; }
@@ -255,27 +251,17 @@ tbody tr:hover { background: var(--subtle-tint); }
 .table-foot, .table-foot i, .source-strip, .source-strip i, footer, footer > p, .footer-brand { color: var(--muted); }
 footer { border-color: var(--border); }
 footer a:hover { color: var(--accent); }
-main { padding-bottom: 106px; }
-html { scroll-padding-bottom: 110px; }
 
-/* A native select keeps the floating currency switcher usable on touch and keyboards. */
-.currency-control {
-  position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); z-index: 30;
-  display: flex; align-items: center; gap: 11px; max-width: calc(100vw - 24px); padding: 10px 11px;
-  color: var(--text); border: 1px solid var(--glass-border); border-radius: 999px;
-  background: linear-gradient(135deg, var(--glass-glint), transparent 65%), var(--topbar-glass);
-  box-shadow: inset 0 1px 0 var(--glass-shine), 0 10px 32px var(--glass-shadow), 0 0 0 1px var(--border);
-  backdrop-filter: blur(30px) saturate(165%); -webkit-backdrop-filter: blur(30px) saturate(165%);
+/* The top-right currency indicator is also the native currency selector. */
+.currency-control { position: relative; flex: 0 0 auto; }
+.currency-control select {
+  appearance: none; width: 84px; min-height: 40px; padding: 9px 23px 9px 11px;
+  color: var(--accent-strong); border: 1px solid var(--border); border-radius: 999px;
+  background: linear-gradient(140deg, var(--glass-glint), transparent), var(--control);
+  font: 500 10px var(--mono); box-shadow: inset 0 1px 0 var(--glass-shine);
 }
-.currency-control:focus-within { box-shadow: inset 0 1px 0 var(--glass-shine), 0 10px 32px var(--glass-shadow), 0 0 0 2px var(--accent); }
-.currency-control-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; color: var(--accent); background: var(--subtle-tint); border: 1px solid var(--border); border-radius: 50%; font: 18px var(--mono); }
-.currency-control-copy { display: grid; gap: 5px; cursor: pointer; }
-.currency-control-copy > span { color: var(--secondary); font-size: 10px; font-weight: 500; }
-.currency-control-copy > small { color: var(--muted); font-size: 8px; }
-.currency-control-select { position: relative; margin-left: 5px; }
-.currency-control-select select { appearance: none; min-height: 42px; width: 94px; padding: 10px 25px 10px 12px; color: var(--accent-strong); background: var(--control-selected); border: 1px solid var(--control-selected-border); border-radius: 999px; font: 11px var(--mono); box-shadow: inset 0 1px 0 var(--glass-shine); }
-.currency-control-select select:hover { background: var(--control-hover); }
-.currency-control-select > svg { position: absolute; top: 15px; right: 10px; color: var(--accent); pointer-events: none; }
+.currency-control select:hover { background: var(--control-hover); border-color: var(--glass-border); }
+.currency-control > svg { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .empty-assets, .empty-assets h3 { color: var(--accent); }
 .empty-assets p { color: var(--secondary); }
 .status-dot { background: var(--positive); box-shadow: 0 0 6px color-mix(in srgb, var(--positive) 15%, transparent); }
@@ -304,13 +290,15 @@ html { scroll-padding-bottom: 110px; }
   .range-tabs button { min-height: 32px; }
   .hero p { font-size: 11px; }
   .conversion-pair label svg { bottom: 14px; }
-  .currency-control { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); gap: 9px; }
   .chart-value { font-size: 25px; }
   .chart-current-price .change-period { font-size: 7px; }
 }
 @media (max-width: 440px) {
   .topbar-left { gap: 3px; }
   .topbar-actions { gap: 7px; }
+  .currency-control select { width: 75px; min-height: 42px; padding-left: 9px; font-size: 9px; }
+  .topbar .refresh-button { flex-shrink: 0; }
+  .search-field { min-width: 44px; }
   .topbar .menu-toggle { width: 30px; }
   .topbar .refresh-button { width: 34px; height: 34px; }
   .search-field { padding-left: 9px; padding-right: 9px; gap: 6px; }
@@ -320,8 +308,8 @@ html { scroll-padding-bottom: 110px; }
   .appearance-segments button { font-size: 9px; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav, .currency-control { background: var(--opaque-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav { background: var(--opaque-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @supports not (backdrop-filter: blur(1px)) {
-  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav, .currency-control { background: var(--opaque-panel); }
+  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav { background: var(--opaque-panel); }
 }

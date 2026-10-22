@@ -116,7 +116,7 @@ export default function App() {
     <div className="app-content" id="top">
       <header className="topbar">
         <div className="topbar-left"><button className="icon-button menu-toggle" onClick={() => setNavOpen(true)} aria-label="Open menu"><Icon name="menu" /></button><span className="mobile-brand">{SITE_NAME}</span><span className="breadcrumb">Markets <span>/</span> <strong>{FILTERS.find(f => f.id === filter)?.label}</strong></span></div>
-        <div className="topbar-actions"><label className="search-field"><Icon name="search" size={17} /><input ref={searchRef} value={query} onChange={e => { setQuery(e.target.value); document.getElementById('markets')?.scrollIntoView({ behavior: scrollBehavior, block: 'start' }) }} placeholder="Search assets…" aria-label="Search currencies and cryptocurrencies" /><kbd>/</kbd></label><button className="base-pill" onClick={() => document.getElementById('display-currency')?.focus()} aria-label={`Change display currency, currently ${displayCurrency}`}><span>{quote.symbol}</span> {displayCurrency}<Icon name="chevron" size={11} /></button><button className="icon-button refresh-button" onClick={refresh} disabled={busy} aria-label="Refresh market data" title="Refresh market data"><Icon name="refresh" size={18} className={busy ? 'spinning' : ''} /></button></div>
+        <div className="topbar-actions"><label className="search-field"><Icon name="search" size={17} /><input ref={searchRef} value={query} onChange={e => { setQuery(e.target.value); document.getElementById('markets')?.scrollIntoView({ behavior: scrollBehavior, block: 'start' }) }} placeholder="Search assets…" aria-label="Search currencies and cryptocurrencies" /><kbd>/</kbd></label><CurrencyControl value={displayCurrency} onChange={setDisplayCurrency} /><button className="icon-button refresh-button" onClick={refresh} disabled={busy} aria-label="Refresh market data" title="Refresh market data"><Icon name="refresh" size={18} className={busy ? 'spinning' : ''} /></button></div>
       </header>
       <main id="main">
         <section className="hero" aria-labelledby="hero-title">
@@ -168,7 +168,6 @@ export default function App() {
         <footer><a className="footer-brand" href="#top"><Icon name="moon" size={15} /> {SITE_NAME}</a><p>Global markets. A local perspective.</p><div><a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates By Exchange Rate API</a><span>·</span><a href="https://www.coingecko.com" target="_blank" rel="noreferrer">CoinGecko</a></div></footer>
       </main>
     </div>
-    <CurrencyControl value={displayCurrency} onChange={setDisplayCurrency} />
     <DataDialog open={infoOpen} close={() => setInfoOpen(false)} />
   </>
 }
