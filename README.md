@@ -7,8 +7,8 @@ A personal market dashboard with a night-sky dark theme, a soft sky light theme 
 - A midnight-purple dashboard with a star field, drifting aurora, shooting stars, a floating planet, chart animations and hover effects.
 - Automatic system light/dark appearance, with a System / Light / Dark selector. System mode responds immediately when the device theme changes; manual overrides are remembered.
 - Frosted widgets, pill-shaped buttons, segmented controls, edge highlights and spring-like press feedback. Prices, native selects, chart lines, dialogs and navigation adapt to both themes.
-- 12 world currencies displayed as the MNT value of **1 unit**: USD, EUR, CNY, JPY, KRW, GBP, RUB, AUD, CAD, CHF, SGD and HKD.
-- 10 cryptocurrencies with USD and MNT prices, real 24-hour changes, market caps and seven-day sparklines.
+- 12 world currencies displayed per **1 unit** in your chosen MNT, USD or EUR: USD, EUR, CNY, JPY, KRW, GBP, RUB, AUD, CAD, CHF, SGD and HKD.
+- 10 cryptocurrencies with MNT, USD and EUR views, real USD-based 24-hour changes, market caps and seven-day sparklines.
 - Historical crypto charts with 1-day, 7-day and 30-day periods, pointer tooltips and keyboard arrow-key inspection.
 - A converter for currencies, MNT and crypto, including reverse conversion and a copy button.
 - Search, category filters, sorting and favorites saved in this browser.
@@ -114,6 +114,18 @@ The active mode is remembered in this browser. Selecting System again resumes au
 
 The saved theme is applied before the first paint to avoid a flash of the opposite theme on reload. Reduced-motion preferences remain supported; browsers that support reduced transparency get more opaque surfaces.
 
+### 1.7 Choose your display currency
+
+Use the floating **Display currency** selector in the **bottom-right corner**, on desktop or mobile:
+
+- **₮ MNT:** Mongolian tögrög (the default).
+- **$ USD:** US dollars.
+- **€ EUR:** Euros.
+
+Changing it updates featured cards, market-table prices and sorting labels, chart values and tooltips, and the converter's destination currency. Your choice stays saved after a reload. You can still choose a different pair directly in the converter; the next display-currency change sets its destination again while keeping the amount and source.
+
+The smaller comparison column shows USD alongside MNT/EUR, and MNT alongside USD. The chart's MNT/EUR view converts the USD series using the latest reference FX rate for the whole period. The 24-hour percentage changes remain USD-based. If the FX feed is unavailable, USD crypto prices can still use the available CoinGecko data.
+
 ## 2. Put the project on GitHub
 
 ### 2.1 Create an empty repository
@@ -138,10 +150,17 @@ git add .
 git commit -m "Create prototype crpt market dashboard"
 ```
 
-Then replace `YOUR_USERNAME` with your actual GitHub username, or paste the exact URL copied from GitHub:
+For your GitHub account `chki1`, use:
 
 ```powershell
-git remote add origin https://github.com/YOUR_USERNAME/prototype-crpt.git
+git remote add origin https://github.com/chki1/prototype-crpt.git
+git push -u origin main
+```
+
+If `origin` already exists, update it instead of adding it again:
+
+```powershell
+git remote set-url origin https://github.com/chki1/prototype-crpt.git
 git push -u origin main
 ```
 
@@ -220,6 +239,63 @@ Open `.env.local`, add your key after `COINGECKO_DEMO_API_KEY=`, save, and resta
 
 Deploy the **whole repository**, including `api` and `server`. Uploading only `dist` to static hosting will not include the market API.
 
+### 3.5 Vercel Web Analytics and Speed Insights
+
+This project includes both React integrations in `src/main.tsx`:
+
+- **Web Analytics** records page views and visitor traffic.
+- **Speed Insights** measures performance from real visits.
+
+No analytics API key or additional environment variable is needed.
+
+1. Open your `prototype-crpt` project in the Vercel dashboard.
+2. Open **Analytics / Web Analytics** and click **Enable** if it is not already enabled.
+3. Open **Speed Insights** and follow any activation prompt shown for the project.
+4. Deploy the updated source after enabling the features. If this version was already deployed before activation, redeploy it so Vercel adds its collection endpoints.
+5. Visit the public production URL, use the page, then return to both dashboards. Local development does not supply production traffic. Performance reports need real visits and may take a few days to become useful.
+
+The integrations are mounted once at the app root. The app does not send conversion amounts, searches or watchlist choices as custom events. Its current navigation filters stay on the same page, so they are not separate page views.
+
+**Adding this update to your existing Windows project:**
+
+Run in the VS Code terminal:
+
+```powershell
+cd F:\dev\projects\prototype-crpt
+npm install @vercel/analytics @vercel/speed-insights
+```
+
+Replace `src/main.tsx` with:
+
+```tsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
+import App from './App'
+import './styles.css'
+import './theme.css'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+    <Analytics />
+    <SpeedInsights />
+  </StrictMode>,
+)
+```
+
+The updated `src/components/DataDialog.tsx` also discloses the page-view and performance measurement. Copy that file from the updated ZIP into your existing project to include the same disclosure. Then enable the features as above and publish:
+
+```powershell
+npm run build
+git add package.json package-lock.json src/main.tsx src/components/DataDialog.tsx
+git commit -m "Add Vercel Analytics and Speed Insights"
+git push origin main
+```
+
+Commit both `package.json` and `package-lock.json` so Vercel's `npm ci` installs the new packages. Vercel's connected Git deployment picks up the pushed commit.
+
 ## 4. Publish later changes
 
 Edit the relevant source files in VS Code and check the result locally. Then run:
@@ -233,6 +309,32 @@ git push origin main
 
 Vercel's Git integration automatically creates a new deployment from pushes to the connected production branch. If an update does not appear, check that branch in Vercel's deployment list and look at its build result.
 
+### 4.1 Apply the display-currency update to your existing project
+
+1. Download and extract the updated `prototype-crpt.zip` into a temporary folder.
+2. In VS Code, stop the running dev server with **Ctrl+C**.
+3. Copy the updated **contents of `src`** into `F:\dev\projects\prototype-crpt\src`, replacing matching files and including the new `components/CurrencyControl.tsx` file.
+4. Copy `tests/core.test.ts` into your project's `tests` folder and copy the updated `README.md` into the project root.
+5. This update adds no dependencies. If the previous Analytics update is installed, run the following from your existing project, one command at a time:
+
+```powershell
+cd F:\dev\projects\prototype-crpt
+npm test
+npm run build
+```
+
+After the checks finish successfully, upload the changes:
+
+```powershell
+git add src tests/core.test.ts README.md
+git commit -m "Add MNT USD and EUR display currency selector"
+git push origin main
+```
+
+Wait for the connected Vercel deployment to reach **Ready**, then open the live site and choose a currency at the bottom-right. Test both themes and reload once to check that the choice is remembered.
+
+If you have not installed the previous Analytics update, also copy its `package.json` and `package-lock.json`, install dependencies, and include both package files in the commit.
+
 ## 5. Make the website yours
 
 | File | What to change |
@@ -242,10 +344,13 @@ Vercel's Git integration automatically creates a new deployment from pushes to t
 | `src/styles.css` | Layout, fonts, spacing, stars, aurora, planet and animations |
 | `src/theme.css` | Light/dark color tokens, glass surfaces, pill controls and theme-aware chart colors |
 | `src/components/ThemeControl.tsx` | System / Light / Dark selector and keyboard navigation |
+| `src/components/CurrencyControl.tsx` | Floating MNT / USD / EUR display selector |
+| `src/lib/money.ts` | Currency normalization, quote calculations and number formatting |
 | `src/lib/useTheme.ts` | Device-theme change listener, preference persistence and appearance synchronization |
 | `src/components/Converter.tsx` | Converter layout and labels |
 | `src/components/PriceChart.tsx` | Chart appearance and tooltips |
 | `src/components/DataDialog.tsx` | Source explanations |
+| `src/main.tsx` | React entry point, Vercel Web Analytics and Speed Insights |
 | `index.html` | Browser title, description and appearance bootstrap before first paint |
 | `public/favicon.svg` | Browser icon |
 | `server/market-service.ts` | Provider integration, response validation and caching |
@@ -263,16 +368,19 @@ MNT per 1 USD = rates.MNT
 MNT per 1 CNY = rates.MNT / rates.CNY
 MNT per 1 BTC = bitcoin.priceUsd * rates.MNT
 Converted amount = amount * MNT_per_source_unit / MNT_per_target_unit
+
+Selected-fiat quote per source unit = rates[selected_currency] / rates[source_currency]
+Selected-fiat quote per crypto unit = coin.priceUsd * rates[selected_currency]
 ```
 
 The UI always displays each rate per **one source unit**, including JPY and KRW. It does not silently switch to 100-yen or 1,000-won units.
 
 - **Fiat source:** ExchangeRate-API's open endpoint. Quotes update daily; the app checks hourly and respects the provider's next-update time where possible.
 - **Crypto source:** CoinGecko. The page refreshes prices every five minutes while visible; chart responses are cached for 15 minutes.
-- **Crypto charts:** Actual historical USD timestamp/price pairs. MNT prices use the latest daily FX rate; the chart does not claim to show historical USD/MNT rates.
+- **Crypto charts:** Actual historical USD timestamp/price pairs. MNT and EUR views multiply the USD history by the latest reference FX rate for the whole period, as stated below the chart. The 24-hour percentage changes use the original USD quotes.
 - **Freshness:** Provider update timestamps and saved-data notices are visible. Server memory/CDN caching and browser caching reduce repeat requests; caching and quotas do not guarantee uninterrupted upstream availability.
 - **Rate type:** Indicative reference rates. They are not official Bank of Mongolia quotes or a commercial bank's buy/sell offer.
-- **Privacy:** Favorites, appearance and the motion setting are stored locally in the browser. This project has no accounts, database or visitor-tracking feature.
+- **Privacy:** Favorites, display currency, appearance and the motion setting are stored locally in the browser. This project has no accounts or database. When enabled on Vercel, Web Analytics records page views and Speed Insights collects page-performance measurements. The app does not send conversion amounts, searches, display preferences or watchlist choices as custom events.
 
 ## 7. Common fixes
 
@@ -280,6 +388,7 @@ The UI always displays each rate per **one source unit**, including JPY and KRW.
 | --- | --- |
 | `npm` or `node` is not recognized | Install Node, then close and reopen VS Code. |
 | PowerShell blocks `npm.ps1` | Use `npm.cmd ci`, `npm.cmd run dev` and `npm.cmd run build`. |
+| `npm ci` reports `EBUSY`, followed by missing `tsc` | Stop dev servers and close VS Code. Reboot Windows if the file remains locked. Remove only the project's incomplete `node_modules` directory, then run `npm ci --include=dev`. Wait for it to succeed before building. |
 | Cannot find React or a module | Run `npm ci` from the folder containing `package.json`; then restart VS Code's TypeScript server if needed. |
 | Unexpected TypeScript warnings in the editor | With a `.tsx` file open, run **TypeScript: Select TypeScript Version → Use Workspace Version** from Ctrl+Shift+P. |
 | `Repository not found` | Confirm the repository exists under the signed-in account and check `git remote -v`. Use the exact HTTPS URL copied from its GitHub page. |
@@ -288,6 +397,7 @@ The UI always displays each rate per **one source unit**, including JPY and KRW.
 | Website works locally, but `/api/market` is 404 on Vercel | Verify `api/market.ts` and `server` were committed. Deploy the complete repository with the included Vercel configuration. |
 | Crypto quotes are unavailable or rate limited | Retry later, or add a CoinGecko Demo key under the exact environment-variable name above and redeploy. |
 | Currency values differ from your bank | The app uses reference rates; banks apply their own buy/sell spreads. |
+| Vercel Analytics or Speed Insights is empty | Enable the feature in the correct project, deploy after activation, visit the production URL and allow time for real traffic. Check that content blockers are not blocking the measurement scripts. |
 
 ## Official references
 
@@ -295,6 +405,8 @@ The UI always displays each rate per **one source unit**, including JPY and KRW.
 - [Adding a local project to GitHub](https://docs.github.com/en/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github)
 - [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite)
 - [Vercel Node functions](https://vercel.com/docs/functions/runtimes/node-js)
+- [Vercel Web Analytics setup](https://vercel.com/docs/analytics/quickstart)
+- [Vercel Speed Insights setup](https://vercel.com/docs/speed-insights/quickstart)
 - [ExchangeRate-API open endpoint](https://www.exchangerate-api.com/docs/free)
 - [CoinGecko market data](https://docs.coingecko.com/demo/reference/coins-markets)
 - [CoinGecko historical charts](https://docs.coingecko.com/demo/reference/coins-id-market-chart)

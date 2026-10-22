@@ -1,27 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
 import { CONVERTER_ASSETS } from '../config'
-import { convertAmount, dateTime, formatNumber } from '../lib/money'
+import { convertAmount, dateTime, formatNumber, type DisplayCurrency } from '../lib/money'
 import type { Coin, RateSnapshot } from '../types'
 import Icon from './Icon'
 
-export default function Converter({ fx, coins, request, forexStale, cryptoStale }: { fx: RateSnapshot | null; coins: Coin[]; request: { code: string; nonce: number }; forexStale: boolean; cryptoStale: boolean }) {
+export default function Converter({ fx, coins, request, displayCurrency, forexStale, cryptoStale }: { fx: RateSnapshot | null; coins: Coin[]; request: { code: string; to: DisplayCurrency; nonce: number }; displayCurrency: DisplayCurrency; forexStale: boolean; cryptoStale: boolean }) {
   const [amount, setAmount] = useState('1')
   const [from, setFrom] = useState('USD')
-  const [to, setTo] = useState('MNT')
+  const [to, setTo] = useState<string>(displayCurrency)
   const [copyStatus, setCopyStatus] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (!request.nonce) return
-    setFrom(request.code); setTo('MNT'); setAmount('1')
+    setFrom(request.code); setTo(request.to); setAmount('1')
     inputRef.current?.focus({ preventScroll: true })
   }, [request])
+  useEffect(() => { setTo(displayCurrency) }, [displayCurrency])
   useEffect(() => { setCopyStatus('') }, [amount, from, to])
   const valid = /^\d*\.?\d+$|^\d+\.$/.test(amount.trim()) && Number.isFinite(Number(amount)) && Number(amount) >= 0
   const result = valid ? convertAmount(Number(amount), from, to, fx, coins) : null
   const unit = convertAmount(1, from, to, fx, coins)
   const target = CONVERTER_ASSETS.find(a => a.code === to)!
   const usesCrypto = CONVERTER_ASSETS.some(a => (a.code === from || a.code === to) && a.type === 'crypto')
-  const stale = from !== to && (forexStale || (usesCrypto && cryptoStale))
+  const usesFx = CONVERTER_ASSETS.some(a => a.code !== 'USD' && (a.code === from || a.code === to) && a.type === 'currency')
+  const stale = from !== to && ((usesFx && forexStale) || (usesCrypto && cryptoStale))
   const decimals = target.type === 'crypto' ? 8 : 2
   const formatted = formatNumber(result, decimals)
   async function copy() {

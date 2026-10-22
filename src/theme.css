@@ -157,6 +157,8 @@ button:active:not(:disabled) { transform: scale(.965); }
 .breadcrumb strong, .mobile-brand { color: var(--secondary); }
 .base-pill { color: var(--secondary); }
 .base-pill > span { color: var(--cream); }
+.base-pill { padding: 7px 9px; border-radius: 999px; }
+.base-pill:hover { background: var(--control-hover); }
 .search-field { background: var(--control); border-color: var(--border); border-radius: 999px; min-height: 36px; box-shadow: inset 0 1px 0 var(--glass-shine); }
 .search-field, .search-field input::placeholder, .search-field kbd { color: var(--muted); }
 .search-field input { font-size: 11px; }
@@ -187,6 +189,10 @@ button:active:not(:disabled) { transform: scale(.965); }
 .range-tabs button.selected { color: var(--accent-strong); background: var(--control-selected); border-color: var(--control-selected-border); box-shadow: inset 0 1px 0 var(--glass-shine), 0 2px 7px var(--glass-shadow); }
 .range-tabs button:hover { color: var(--accent); }
 .chart-current-price { color: var(--text); }
+.chart-current-price { flex-wrap: wrap; row-gap: 8px; }
+.chart-value { font-size: clamp(19px, 1.8vw, 29px); }
+.chart-fx-note { margin: 0 0 13px; color: var(--muted); font-size: 9px; line-height: 1.7; }
+.chart-foot { gap: 12px; }
 .chart-current-price .change { background: color-mix(in srgb, var(--positive) 7%, transparent); border-color: color-mix(in srgb, var(--positive) 12%, transparent); border-radius: 99px; }
 .chart-current-price .change.down { background: color-mix(in srgb, var(--negative) 7%, transparent); border-color: color-mix(in srgb, var(--negative) 12%, transparent); }
 .change-period, .chart-mnt, .chart-mnt span { color: var(--muted); }
@@ -249,6 +255,27 @@ tbody tr:hover { background: var(--subtle-tint); }
 .table-foot, .table-foot i, .source-strip, .source-strip i, footer, footer > p, .footer-brand { color: var(--muted); }
 footer { border-color: var(--border); }
 footer a:hover { color: var(--accent); }
+main { padding-bottom: 106px; }
+html { scroll-padding-bottom: 110px; }
+
+/* A native select keeps the floating currency switcher usable on touch and keyboards. */
+.currency-control {
+  position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); z-index: 30;
+  display: flex; align-items: center; gap: 11px; max-width: calc(100vw - 24px); padding: 10px 11px;
+  color: var(--text); border: 1px solid var(--glass-border); border-radius: 999px;
+  background: linear-gradient(135deg, var(--glass-glint), transparent 65%), var(--topbar-glass);
+  box-shadow: inset 0 1px 0 var(--glass-shine), 0 10px 32px var(--glass-shadow), 0 0 0 1px var(--border);
+  backdrop-filter: blur(30px) saturate(165%); -webkit-backdrop-filter: blur(30px) saturate(165%);
+}
+.currency-control:focus-within { box-shadow: inset 0 1px 0 var(--glass-shine), 0 10px 32px var(--glass-shadow), 0 0 0 2px var(--accent); }
+.currency-control-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; color: var(--accent); background: var(--subtle-tint); border: 1px solid var(--border); border-radius: 50%; font: 18px var(--mono); }
+.currency-control-copy { display: grid; gap: 5px; cursor: pointer; }
+.currency-control-copy > span { color: var(--secondary); font-size: 10px; font-weight: 500; }
+.currency-control-copy > small { color: var(--muted); font-size: 8px; }
+.currency-control-select { position: relative; margin-left: 5px; }
+.currency-control-select select { appearance: none; min-height: 42px; width: 94px; padding: 10px 25px 10px 12px; color: var(--accent-strong); background: var(--control-selected); border: 1px solid var(--control-selected-border); border-radius: 999px; font: 11px var(--mono); box-shadow: inset 0 1px 0 var(--glass-shine); }
+.currency-control-select select:hover { background: var(--control-hover); }
+.currency-control-select > svg { position: absolute; top: 15px; right: 10px; color: var(--accent); pointer-events: none; }
 .empty-assets, .empty-assets h3 { color: var(--accent); }
 .empty-assets p { color: var(--secondary); }
 .status-dot { background: var(--positive); box-shadow: 0 0 6px color-mix(in srgb, var(--positive) 15%, transparent); }
@@ -269,6 +296,7 @@ footer a:hover { color: var(--accent); }
 @media (max-width: 700px) {
   .topbar { height: 60px; top: 8px; margin: 8px 12px 0; padding: 0 12px; border-radius: 23px; }
   .summary-card { border-radius: 24px; }
+  .summary-price.long-price { font-size: clamp(12px, 3.5vw, 18px); letter-spacing: -.6px; gap: 5px; }
   .panel { border-radius: 27px; }
   .filter-tabs { gap: 2px; }
   .filter-tabs button { padding: 8px 10px; }
@@ -276,6 +304,9 @@ footer a:hover { color: var(--accent); }
   .range-tabs button { min-height: 32px; }
   .hero p { font-size: 11px; }
   .conversion-pair label svg { bottom: 14px; }
+  .currency-control { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); gap: 9px; }
+  .chart-value { font-size: 25px; }
+  .chart-current-price .change-period { font-size: 7px; }
 }
 @media (max-width: 440px) {
   .topbar-left { gap: 3px; }
@@ -289,8 +320,8 @@ footer a:hover { color: var(--accent); }
   .appearance-segments button { font-size: 9px; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav { background: var(--opaque-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav, .currency-control { background: var(--opaque-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @supports not (backdrop-filter: blur(1px)) {
-  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav { background: var(--opaque-panel); }
+  .panel, .summary-card, .sidebar-note, .sidebar, .topbar, .mobile-nav, .currency-control { background: var(--opaque-panel); }
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
-import { convertAmount, mntPerUnit } from '../src/lib/money.js'
+import { convertAmount, formatPrice, mntPerUnit, normalizeDisplayCurrency, pricePerUnit, usdToCurrency } from '../src/lib/money.js'
 import { createMarketService } from '../server/market-service.js'
 import type { Coin, RateSnapshot } from '../src/types.js'
 import { normalizeThemePreference, resolveTheme } from '../src/lib/theme.js'
@@ -41,6 +41,48 @@ test('unavailable or invalid rates never produce NaN, Infinity, or invented quot
   assert.equal(mntPerUnit('BTC', fx, []), null)
   assert.equal(mntPerUnit('UNKNOWN', fx, []), null)
   assert.equal(mntPerUnit('USD', { ...fx, rates: { MNT: 0, USD: 1 } }, []), null)
+})
+
+test('display currency quotes fiat and crypto correctly in MNT, USD and EUR', () => {
+  assert.equal(pricePerUnit('USD', 'MNT', fx, []), 3500)
+  assert.equal(pricePerUnit('USD', 'USD', null, []), 1)
+  assert.equal(pricePerUnit('USD', 'EUR', fx, []), .9)
+  assert.equal(pricePerUnit('EUR', 'USD', fx, []), 1 / .9)
+  assert.equal(pricePerUnit('CNY', 'EUR', fx, []), .9 / 7)
+  assert.equal(pricePerUnit('BTC', 'MNT', fx, [bitcoin]), 234500000)
+  assert.equal(pricePerUnit('BTC', 'USD', fx, [bitcoin]), 67000)
+  assert.equal(pricePerUnit('BTC', 'EUR', fx, [bitcoin]), 60300)
+  assert.equal(pricePerUnit('EUR', 'EUR', null, []), 1)
+  assert.equal(convertAmount(60300, 'EUR', 'BTC', fx, [bitcoin]), 1)
+})
+
+test('USD crypto quotes and conversions work without an unavailable FX feed', () => {
+  assert.equal(pricePerUnit('BTC', 'USD', null, [bitcoin]), 67000)
+  assert.equal(convertAmount(1, 'BTC', 'USD', null, [bitcoin]), 67000)
+  assert.equal(convertAmount(67000, 'USD', 'BTC', null, [bitcoin]), 1)
+  assert.equal(pricePerUnit('BTC', 'EUR', null, [bitcoin]), null)
+  assert.equal(pricePerUnit('BTC', 'MNT', null, [bitcoin]), null)
+  assert.equal(pricePerUnit('USD', 'EUR', { ...fx, rates: { EUR: NaN } }, []), null)
+  assert.equal(pricePerUnit('USD', 'MNT', { ...fx, rates: { MNT: 0 } }, []), null)
+  assert.equal(pricePerUnit('BTC', 'EUR', fx, [{ ...bitcoin, priceUsd: Infinity }]), null)
+})
+
+test('chart and market statistics convert USD values with the same reference FX quote', () => {
+  assert.equal(usdToCurrency(67000, 'EUR', fx), 60300)
+  assert.equal(usdToCurrency(67000, 'MNT', fx), 234500000)
+  assert.equal(usdToCurrency(67000, 'USD', null), 67000)
+  assert.equal(usdToCurrency(0, 'EUR', fx), 0)
+  assert.equal(usdToCurrency(67000, 'EUR', null), null)
+  for (const value of [null, undefined, NaN, Infinity, -1]) assert.equal(usdToCurrency(value, 'USD', fx), null)
+})
+
+test('display preferences fall back safely and small USD quotes retain useful precision', () => {
+  assert.equal(normalizeDisplayCurrency('USD'), 'USD')
+  assert.equal(normalizeDisplayCurrency('EUR'), 'EUR')
+  for (const value of [null, undefined, 'invalid', 'usd', {}, 1]) assert.equal(normalizeDisplayCurrency(value), 'MNT')
+  assert.equal(formatPrice(1 / 1300), '0.0008')
+  assert.equal(formatPrice(3500), '3,500.00')
+  assert.equal(formatPrice(null), '—')
 })
 
 test('API rejects unsupported resources and arbitrary coin URLs before making a network request', async () => {
