@@ -15,7 +15,7 @@ function positiveRate(value: string): number {
   return result
 }
 
-export function parseFallbackRates(html: string, time: number): RateSnapshot {
+export function readTdbTable(html: string, time: number) {
   if (html.length > 2_000_000) throw new Error('Oversized bank response')
   const input = [...html.matchAll(/<input\b[^>]*>/gi)].find(m => attr(m[0], 'id') === 'edit-date')?.[0]
   const quoteDate = input && attr(input, 'value')
@@ -26,6 +26,12 @@ export function parseFallbackRates(html: string, time: number): RateSnapshot {
   if (!table) throw new Error('Missing bank table')
   const rows = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map(m => [...m[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(c => text(c[1])))
   if (rows[0]?.join('|') !== 'Валют|Монгол банк|Бэлэн бус|Бэлэн' || rows[1]?.join('|') !== 'Авах|Зарах|Авах|Зарах') throw new Error('Bank columns changed')
+  return { quoteDate, rows }
+}
+
+export function parseFallbackRates(html: string, time: number): RateSnapshot {
+  const { quoteDate, rows } = readTdbTable(html, time)
+  const date = Date.parse(`${quoteDate}T00:00:00+08:00`)
   const mnt: Record<string, number> = {}
   for (const currency of CURRENCIES) {
     const matches = rows.filter(row => row[1] === currency.code)

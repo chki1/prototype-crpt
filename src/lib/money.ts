@@ -1,9 +1,10 @@
 import type { Coin, RateSnapshot } from '../types'
+import { DISPLAY_CURRENCIES } from '../config'
 
-export type DisplayCurrency = 'MNT' | 'USD' | 'EUR'
+export type DisplayCurrency = string
 
 export function normalizeDisplayCurrency(value: unknown): DisplayCurrency {
-  return value === 'USD' || value === 'EUR' ? value : 'MNT'
+  return typeof value === 'string' && DISPLAY_CURRENCIES.some(asset => asset.code === value) ? value : 'MNT'
 }
 
 function positive(value: number | undefined): value is number {
@@ -30,9 +31,9 @@ export function mntPerUnit(code: string, fx: RateSnapshot | null, coins: Coin[])
   return pricePerUnit(code, 'MNT', fx, coins)
 }
 
-export function usdToCurrency(value: number | null | undefined, quote: DisplayCurrency, fx: RateSnapshot | null): number | null {
+export function usdToCurrency(value: number | null | undefined, quote: DisplayCurrency, fx: RateSnapshot | null, coins: Coin[] = []): number | null {
   if (value == null || !Number.isFinite(value) || value < 0) return null
-  const rate = pricePerUnit('USD', quote, fx, [])
+  const rate = pricePerUnit('USD', quote, fx, coins)
   if (rate == null) return null
   const result = value * rate
   return Number.isFinite(result) ? result : null
@@ -53,7 +54,8 @@ export function formatNumber(value: number | null | undefined, decimals = 2): st
 }
 
 export function formatPrice(value: number | null | undefined): string {
-  return formatNumber(value, value != null && value > 0 && value < 1 ? 4 : 2)
+  const digits = value != null && value > 0 && value < .0001 ? Math.min(12, Math.max(6, Math.ceil(-Math.log10(value)) + 3)) : value != null && value > 0 && value < 1 ? 4 : 2
+  return formatNumber(value, digits)
 }
 
 export function compactNumber(value: number | null | undefined): string {

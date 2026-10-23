@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App'
 import './styles.css'
 import './theme.css'
+import './market.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

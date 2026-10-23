@@ -32,6 +32,10 @@ export const CRYPTOS: Asset[] = [
 ]
 
 export const MNT: Asset = { code: 'MNT', name: 'Mongolian Tögrög', type: 'currency', symbol: '₮', color: '#d9ccaa' }
-export const DISPLAY_CURRENCIES = [MNT, ...CURRENCIES.filter(a => a.code === 'USD' || a.code === 'EUR')]
 export const ASSETS = [...CURRENCIES, ...CRYPTOS]
 export const CONVERTER_ASSETS = [MNT, ...ASSETS]
+export const DISPLAY_CURRENCIES = CONVERTER_ASSETS
+export const BANKS = [
+  { id: 'tdb' as const, name: 'Trade & Development Bank', shortName: 'TDB', url: 'https://www.tdbm.mn/mn/exchange-rates', color: '#8dbce8' },
+  { id: 'golomt' as const, name: 'Golomt Bank', shortName: 'Golomt', url: 'https://www.golomtbank.com/exchange', color: '#a6c8ff' },
+]

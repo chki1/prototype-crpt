@@ -49,3 +49,26 @@ export type ChartSnapshot = {
   source: 'CoinGecko'
   stale?: boolean
 }
+
+export type BankId = 'tdb' | 'golomt'
+export type BankChannel = 'transfer' | 'cash'
+export type BankPair = { buy: number | null; sell: number | null }
+export type BankQuote = { code: string; referenceMnt: number | null; cash: BankPair; transfer: BankPair }
+export type BankSnapshot = {
+  bankId: BankId
+  bankName: string
+  sourceUrl: string
+  quoteDate: string
+  fetchedAt: string
+  quotes: BankQuote[]
+  stale?: boolean
+}
+export type FiatChartSnapshot = {
+  assetCode: string
+  quoteCode: string
+  days: number
+  points: [number, number][]
+  fetchedAt: string
+  source: 'Bank of Mongolia'
+  stale?: boolean
+}

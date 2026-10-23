@@ -3,6 +3,7 @@ import { CONVERTER_ASSETS } from '../config'
 import { convertAmount, quoteDateLabel, rateLabel, formatNumber, type DisplayCurrency } from '../lib/money'
 import type { Coin, RateSnapshot } from '../types'
 import Icon from './Icon'
+import AssetPicker from './AssetPicker'
 
 export default function Converter({ fx, coins, request, displayCurrency, forexStale, cryptoStale }: { fx: RateSnapshot | null; coins: Coin[]; request: { code: string; to: DisplayCurrency; nonce: number }; displayCurrency: DisplayCurrency; forexStale: boolean; cryptoStale: boolean }) {
   const [amount, setAmount] = useState('1')
@@ -43,9 +44,9 @@ export default function Converter({ fx, coins, request, displayCurrency, forexSt
     </div>
     <div className="quick-amounts">{['1', '100', '1000'].map(n => <button key={n} onClick={() => setAmount(n)} className={amount === n ? 'selected' : ''}>{Number(n).toLocaleString('en-US')}</button>)}</div>
     <div className="conversion-pair">
-      <label>From<select aria-label="Convert from" value={from} onChange={e => setFrom(e.target.value)}>{CONVERTER_ASSETS.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}</select><Icon name="chevron" size={15} /></label>
+      <div className="conversion-pick"><span>From</span><AssetPicker label="Convert from" value={from} onChange={setFrom} /></div>
       <button className="swap-button" onClick={() => { setFrom(to); setTo(from) }} aria-label="Swap currencies"><Icon name="swap" size={16} /></button>
-      <label>To<select aria-label="Convert to" value={to} onChange={e => setTo(e.target.value)}>{CONVERTER_ASSETS.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}</select><Icon name="chevron" size={15} /></label>
+      <div className="conversion-pick"><span>To</span><AssetPicker label="Convert to" value={to} onChange={setTo} /></div>
     </div>
     <div className="conversion-result" aria-live="off" aria-atomic="true">
       <div className="result-eyebrow"><span>You get approximately</span><span>{to}</span></div>

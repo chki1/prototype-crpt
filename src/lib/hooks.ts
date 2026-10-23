@@ -14,7 +14,7 @@ function cached<T>(key: string): T | null {
   try {
     const raw = JSON.parse(localStorage.getItem(`prototype-crpt:data:${key}`) ?? 'null') as { data: T; storedAt: number } | null
     const bankQuote = (raw?.data as { rateType?: unknown } | undefined)?.rateType === 'bank-transfer-sell'
-    const maxAge = key.startsWith('rates') ? bankQuote ? 86400_000 : 7 * 86400_000 : key === 'crypto' ? 3600_000 : 24 * 3600_000
+    const maxAge = key.startsWith('rates') ? bankQuote ? 86400_000 : 7 * 86400_000 : key === 'crypto' || key.startsWith('bank:') ? 3600_000 : 24 * 3600_000
     return raw && typeof raw === 'object' && Number.isFinite(raw.storedAt) && Date.now() - raw.storedAt < maxAge ? raw.data : null
   } catch { return null }
 }

@@ -10,10 +10,10 @@ export function mongoliaDate(time: number): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ulaanbaatar', year: 'numeric', month: '2-digit', day: '2-digit' }).format(time)
 }
 
-export function bankRequestUrl(time: number): string {
+export function bankRequestUrl(time: number, days = 14): string {
   const url = new URL(BANK_RATES_URL)
   // The Bank's own website sends a read-only POST with dates in the query string.
-  url.search = new URLSearchParams({ startDate: mongoliaDate(time - 14 * DAY), endDate: mongoliaDate(time) }).toString()
+  url.search = new URLSearchParams({ startDate: mongoliaDate(time - days * DAY), endDate: mongoliaDate(time) }).toString()
   return url.toString()
 }
 
