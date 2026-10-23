@@ -68,3 +68,17 @@ export function dateTime(value: string | undefined, date = true): string {
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date(value))
 }
+
+export function quoteDateLabel(value: string | undefined): string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Awaiting quote'
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ulaanbaatar', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00+08:00`))
+}
+
+export function rateLabel(fx: RateSnapshot | null | undefined): string {
+  return fx?.rateType === 'bank-transfer-sell' ? 'Bank sell' : 'Daily reference'
+}
+
+export function quoteTime(value: string | undefined): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return 'Awaiting price'
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ulaanbaatar', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(value))
+}

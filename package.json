@@ -1,30 +1,30 @@
 {
-    "name": "prototype-crpt",
-    "version": "1.0.0",
-    "private": true,
-    "type": "module",
-    "engines": {
-        "node": ">=22.12.0"
-    },
-    "scripts": {
-        "dev": "vite --host 0.0.0.0 --port 5173",
-        "build": "tsc --noEmit && vite build",
-        "preview": "vite preview --host 0.0.0.0 --port 4173",
-        "test": "node --import tsx --test tests/core.test.ts"
-    },
-    "dependencies": {
-        "@vercel/analytics": "^2.0.1",
-        "@vercel/speed-insights": "^2.0.0",
-        "react": "19.3.1",
-        "react-dom": "19.3.1"
-    },
-    "devDependencies": {
-        "@types/node": "^22.15.30",
-        "@types/react": "^19.2.2",
-        "@types/react-dom": "^19.2.2",
-        "@vitejs/plugin-react": "6.1.2",
-        "tsx": "^4.20.5",
-        "typescript": "5.9.3",
-        "vite": "8.3.5"
-    }
+  "name": "prototype-crpt",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "6.1.2",
+    "tsx": "^4.20.5",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  }
 }

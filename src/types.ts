@@ -10,9 +10,10 @@ export type Asset = {
 export type RateSnapshot = {
   rates: Record<string, number>
   updatedAt: string
-  nextUpdateAt: string
+  quoteDate: string
   fetchedAt: string
-  source: 'ExchangeRate-API'
+  source: 'Bank of Mongolia' | 'TDB'
+  rateType?: 'reference' | 'bank-transfer-sell'
   stale?: boolean
 }
 
@@ -28,6 +29,9 @@ export type Coin = {
   low24hUsd: number | null
   sparkline: number[]
   updatedAt: string
+  priceSource?: 'Kraken' | 'CoinGecko'
+  live?: boolean
+  stale?: boolean
 }
 
 export type CryptoSnapshot = {

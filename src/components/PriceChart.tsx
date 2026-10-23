@@ -35,7 +35,7 @@ export default function PriceChart({ points, currency, loading, error, retry }: 
   if (!chart) return <div className={`chart-empty ${loading ? 'is-loading' : ''}`} role="status">
     <Icon name={loading ? 'sparkles' : 'chart'} size={30} />
     <p>{loading ? 'Gathering a little market history…' : 'Price history is taking a moment.'}</p>
-    <span>{loading ? 'Connecting to CoinGecko' : error ?? 'Historical data is unavailable for this asset.'}</span>
+    <span>{loading ? 'Loading historical prices' : error ?? 'Historical data is unavailable for this asset.'}</span>
     {!loading && <button className="text-button" onClick={retry}>Try again <Icon name="refresh" size={14} /></button>}
   </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CONVERTER_ASSETS } from '../config'
-import { convertAmount, dateTime, formatNumber, type DisplayCurrency } from '../lib/money'
+import { convertAmount, quoteDateLabel, rateLabel, formatNumber, type DisplayCurrency } from '../lib/money'
 import type { Coin, RateSnapshot } from '../types'
 import Icon from './Icon'
 
@@ -23,7 +23,8 @@ export default function Converter({ fx, coins, request, displayCurrency, forexSt
   const target = CONVERTER_ASSETS.find(a => a.code === to)!
   const usesCrypto = CONVERTER_ASSETS.some(a => (a.code === from || a.code === to) && a.type === 'crypto')
   const usesFx = CONVERTER_ASSETS.some(a => a.code !== 'USD' && (a.code === from || a.code === to) && a.type === 'currency')
-  const stale = from !== to && ((usesFx && forexStale) || (usesCrypto && cryptoStale))
+  const selectedCrypto = coins.filter(c => c.symbol.toUpperCase() === from || c.symbol.toUpperCase() === to)
+  const stale = from !== to && ((usesFx && forexStale) || (usesCrypto && selectedCrypto.some(c => c.stale ?? cryptoStale)))
   const decimals = target.type === 'crypto' ? 8 : 2
   const formatted = formatNumber(result, decimals)
   async function copy() {
@@ -46,14 +47,14 @@ export default function Converter({ fx, coins, request, displayCurrency, forexSt
       <button className="swap-button" onClick={() => { setFrom(to); setTo(from) }} aria-label="Swap currencies"><Icon name="swap" size={16} /></button>
       <label>To<select aria-label="Convert to" value={to} onChange={e => setTo(e.target.value)}>{CONVERTER_ASSETS.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}</select><Icon name="chevron" size={15} /></label>
     </div>
-    <div className="conversion-result" aria-live="polite" aria-atomic="true">
+    <div className="conversion-result" aria-live="off" aria-atomic="true">
       <div className="result-eyebrow"><span>You get approximately</span><span>{to}</span></div>
       <div className={`result-number ${formatted.length > 14 ? 'long' : ''}`}><span>{target.symbol}</span>{formatted}</div>
       <div className="conversion-unit">{unit != null ? `1 ${from} = ${formatNumber(unit, decimals)} ${to}` : 'Waiting for an exchange rate'}</div>
     </div>
-    <p id="amount-help" className={`converter-hint ${amount && !valid ? 'warning-text' : ''}`}>{amount && !valid ? 'Enter a positive number or zero, using a decimal point.' : stale ? 'Using saved quotes. Refresh to check the latest rates.' : 'Indicative market rates. Bank buy/sell rates may differ.'}</p>
+    <p id="amount-help" className={`converter-hint ${amount && !valid ? 'warning-text' : ''}`}>{amount && !valid ? 'Enter a positive number or zero, using a decimal point.' : stale ? 'Using saved quotes. Refresh to check the latest rates.' : 'Indicative conversion using live crypto and the selected daily FX basis. Actual buy/sell offers can differ.'}</p>
     <button className="primary-button" onClick={copy} disabled={result == null}><Icon name={copyStatus === 'Copied to clipboard' ? 'check' : 'copy'} size={16} /> {copyStatus === 'Copied to clipboard' ? 'Copied' : 'Copy conversion'}<Icon name="arrow" size={17} /></button>
     <span className="copy-status" role="status">{copyStatus}</span>
-    <div className="converter-foot"><span className="status-dot" /> FX as of {dateTime(fx?.updatedAt)} · UTC+8</div>
+    <div className="converter-foot"><span className="status-dot" /> {rateLabel(fx)} · {quoteDateLabel(fx?.quoteDate)}</div>
   </section>
 }

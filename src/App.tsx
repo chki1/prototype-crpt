@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ASSETS, CURRENCIES, CRYPTOS, DISPLAY_CURRENCIES, SITE_NAME } from './config'
 import type { Asset, ChartSnapshot, CryptoSnapshot, RateSnapshot } from './types'
-import { compactNumber, dateTime, formatPrice, normalizeDisplayCurrency, pricePerUnit, usdToCurrency, type DisplayCurrency } from './lib/money'
+import { compactNumber, formatPrice, quoteDateLabel, rateLabel, quoteTime, normalizeDisplayCurrency, pricePerUnit, usdToCurrency, type DisplayCurrency } from './lib/money'
 import { useRemoteResource, useStoredState } from './lib/hooks'
 import { useTheme } from './lib/useTheme'
+import { useLivePrices } from './lib/useLivePrices'
 import Icon, { type IconName } from './components/Icon'
 import Sky from './components/Sky'
 import PriceChart, { Sparkline } from './components/PriceChart'
@@ -11,6 +12,7 @@ import Converter from './components/Converter'
 import DataDialog from './components/DataDialog'
 import ThemeControl from './components/ThemeControl'
 import CurrencyControl from './components/CurrencyControl'
+import PriceTick from './components/PriceTick'
 
 type Filter = 'all' | 'currency' | 'crypto' | 'watchlist'
 const FILTERS: { id: Filter; label: string; icon: IconName }[] = [
@@ -33,7 +35,7 @@ export default function App() {
   const quote = DISPLAY_CURRENCIES.find(c => c.code === displayCurrency)!
   const referenceCurrency = displayCurrency === 'USD' ? 'MNT' : 'USD'
   const reference = DISPLAY_CURRENCIES.find(c => c.code === referenceCurrency)!
-  const fx = useRemoteResource<RateSnapshot>('/api/market?resource=rates', 'rates', 3600_000)
+  const fx = useRemoteResource<RateSnapshot>('/api/market?resource=rates&feed=auto-v1', 'rates:auto-v1', 900_000)
   const crypto = useRemoteResource<CryptoSnapshot>('/api/market?resource=crypto', 'crypto', 300_000)
   const [selectedCoin, setSelectedCoin] = useState('bitcoin')
   const [days, setDays] = useState(7)
@@ -50,7 +52,12 @@ export default function App() {
   const [convertRequest, setConvertRequest] = useState({ code: 'USD', to: displayCurrency, nonce: 0 })
   const searchRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDialogElement>(null)
-  const coins = crypto.data?.coins ?? []
+  const referenceCoins = useMemo(() => crypto.data?.coins ?? [], [crypto.data])
+  const live = useLivePrices(referenceCoins, crypto.fromCache || !!crypto.data?.stale || !!crypto.error)
+  const coins = live.coins
+  const liveCount = coins.filter(c => c.live).length
+  const liveLabel = { connecting: 'Connecting live prices', live: 'Live crypto', reconnecting: 'Reconnecting', offline: 'Offline', paused: 'Live paused', unsupported: 'Reference prices' }[live.status]
+  const referenceError = !!crypto.error && liveCount < CRYPTOS.length
   const current = coins.find(c => c.id === selectedCoin)
   const currentAsset = CRYPTOS.find(c => c.id === selectedCoin)!
   const currentPrice = pricePerUnit(currentAsset.code, displayCurrency, fx.data, coins)
@@ -60,8 +67,8 @@ export default function App() {
     const value = price * historyRate
     return Number.isFinite(value) ? [[time, value] as [number, number]] : []
   }), [chart.data, historyRate])
-  const forexStale = !!fx.data && (fx.fromCache || !!fx.data.stale || Date.now() - Date.parse(fx.data.updatedAt) > 48 * 3600_000)
-  const cryptoStale = !!crypto.data && (crypto.fromCache || !!crypto.data.stale)
+  const forexStale = !!fx.data && (fx.fromCache || !!fx.data.stale || Date.now() - Date.parse(fx.data.updatedAt) > (fx.data.rateType === 'bank-transfer-sell' ? 86400_000 : 7 * 86400_000))
+  const cryptoStale = coins.some(c => c.stale)
   const busy = fx.loading || crypto.loading
   const scrollBehavior: ScrollBehavior = motion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant'
 
@@ -90,7 +97,7 @@ export default function App() {
     document.getElementById('converter')?.scrollIntoView({ behavior: scrollBehavior, block: 'center' })
   }
   function toggleWatch(code: string) { setWatchlist(watchlist.includes(code) ? watchlist.filter(c => c !== code) : [...watchlist, code]) }
-  function refresh() { fx.reload(); crypto.reload(); chart.reload() }
+  function refresh() { fx.reload(); crypto.reload(); chart.reload(); live.reconnect() }
 
   const visibleAssets = ASSETS.filter(a => (filter === 'all' || (filter === 'watchlist' ? watchlist.includes(a.code) : a.type === filter)) && `${a.code} ${a.name}`.toLowerCase().includes(query.toLowerCase().trim())).sort((a, b) => {
     if (sort === 'name') return a.name.localeCompare(b.name)
@@ -124,26 +131,29 @@ export default function App() {
           <div className="hero-cosmos" aria-hidden="true"><span className="cosmos-cross cross-one">✦</span><span className="cosmos-cross cross-two">+</span><span className="cosmos-cross cross-three">✧</span><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="planet"><span className="planet-texture" /></div><span className="orbit-satellite" /><span className="cosmos-caption">A SMALL WORLD.<br />ENDLESS POSSIBILITIES.</span><span className="cosmos-coordinates">☾ &nbsp; 01 / {displayCurrency}</span></div>
         </section>
 
+        <div className="live-feed-bar"><div className={`live-feed-state ${live.status === 'live' ? 'is-live' : ''}`} role="status"><span className="feed-light" />{liveLabel}{live.status === 'live' && <small>{liveCount}/{CRYPTOS.length} pairs</small>}</div><span>{fx.data ? `${rateLabel(fx.data)} · ${quoteDateLabel(fx.data.quoteDate)}` : 'Currency rates'}{live.lastPriceAt && <> <i>·</i> Tick {quoteTime(new Date(live.lastPriceAt).toISOString())} UTC+8</>}</span></div>
+        {live.message && <p className="live-feed-note">{live.message}</p>}
+
         <section className="summary-grid" aria-label={`Featured prices in ${quote.name}`}>
           {['USD', 'EUR', 'CNY', 'BTC'].map((code, i) => {
             const asset = ASSETS.find(a => a.code === code)!
             const value = pricePerUnit(code, displayCurrency, fx.data, coins)
             const coin = coins.find(c => c.symbol.toUpperCase() === code)
-            return <button className="summary-card reveal" style={{ animationDelay: `${i * 65}ms` }} key={code} onClick={() => chooseConversion(code)} aria-label={`Convert ${asset.name} to ${displayCurrency}`}><div className="summary-top"><AssetBadge asset={asset} small /><span>{asset.name}</span><Icon name="arrowUp" size={15} /></div><div className={`summary-price ${code === 'BTC' ? 'btc-price' : ''} ${formatPrice(value).length > 11 ? 'long-price' : ''}`}>{formatPrice(value)}<span>{quote.symbol}</span></div><div className="summary-bottom"><span>per 1 {code}</span>{asset.type === 'crypto' ? <Change value={coin?.change24h} /> : <span className="daily-tag">Daily reference</span>}</div></button>
+            return <button className="summary-card reveal" style={{ animationDelay: `${i * 65}ms` }} key={code} onClick={() => chooseConversion(code)} aria-label={`Convert ${asset.name} to ${displayCurrency}`}><div className="summary-top"><AssetBadge asset={asset} small /><span>{asset.name}</span><Icon name="arrowUp" size={15} /></div><div className={`summary-price ${code === 'BTC' ? 'btc-price' : ''} ${formatPrice(value).length > 11 ? 'long-price' : ''}`}><PriceTick value={value} /><span className="price-symbol">{quote.symbol}</span></div><div className="summary-bottom"><span>per 1 {code}</span>{asset.type === 'crypto' ? <Change value={coin?.change24h} /> : <span className="daily-tag">{rateLabel(fx.data)}</span>}</div></button>
           })}
         </section>
 
-        {(fx.error || crypto.error || forexStale || cryptoStale) && <div className="data-notice" role="status"><Icon name="info" size={17} /><div>{fx.error && <p><strong>Currencies:</strong> {fx.data ? 'Showing saved rates. ' : ''}{fx.error}</p>}{crypto.error && <p><strong>Crypto:</strong> {crypto.data ? 'Showing saved prices. ' : ''}{crypto.error}</p>}{!fx.error && forexStale && <p>Currency rates are from a saved or older quote. Check the source time below.</p>}{!crypto.error && cryptoStale && <p>Crypto prices are from a saved or older quote. Check the source time below.</p>}</div><button className="text-button" onClick={refresh} disabled={busy}>Retry <Icon name="refresh" size={14} /></button></div>}
+        {(fx.error || referenceError || forexStale || cryptoStale) && <div className="data-notice" role="status"><Icon name="info" size={17} /><div>{fx.error && <p><strong>Currencies:</strong> {fx.data ? 'Showing saved rates. ' : ''}{fx.error}</p>}{referenceError && <p><strong>Crypto reference data:</strong> {coins.length ? 'Showing available or saved quotes. ' : ''}{crypto.error}</p>}{!fx.error && forexStale && <p>Currency rates are from a saved or older quote. Check the quote time below.</p>}{!referenceError && cryptoStale && <p>Some crypto prices are saved or waiting for live updates. Check the quote time below.</p>}</div><button className="text-button" onClick={refresh} disabled={busy}>Retry <Icon name="refresh" size={14} /></button></div>}
 
         <div className="dashboard-grid">
           <section className="panel orbit-panel reveal" aria-labelledby="chart-title">
             <div className="panel-heading"><div><div className="section-eyebrow"><Icon name="chart" size={14} /> MARKET ORBIT</div><h2 id="chart-title">A little market perspective.</h2></div><span className="soft-label"><span className="status-dot" /> {displayCurrency} view</span></div>
             <div className="chart-toolbar"><div className="coin-selector"><AssetBadge asset={currentAsset} small /><select value={selectedCoin} onChange={e => setSelectedCoin(e.target.value)} aria-label="Chart cryptocurrency">{CRYPTOS.map(c => <option value={c.id} key={c.id}>{c.name} · {c.code}</option>)}</select><Icon name="chevron" size={14} /></div><div className="range-tabs" aria-label="Chart period">{[1, 7, 30].map(d => <button key={d} aria-pressed={days === d} onClick={() => setDays(d)} className={days === d ? 'selected' : ''}>{d}D</button>)}</div></div>
-            <div className="chart-price-row"><div className="chart-current-price"><span className="chart-value">{quote.symbol}{formatPrice(currentPrice)}</span><Change value={current?.change24h} /><span className="change-period">24h · USD</span></div><div className="chart-mnt">≈ {formatPrice(pricePerUnit(currentAsset.code, referenceCurrency, fx.data, coins))} <span>{referenceCurrency}</span></div></div>
+            <div className="chart-price-row"><div className="chart-current-price"><span className="chart-value">{quote.symbol}<PriceTick value={currentPrice} /></span><Change value={current?.change24h} /><span className="change-period">24h · USD</span></div><div className="chart-mnt"><span className={`quote-source ${current?.live ? 'is-live' : ''}`}>{current?.live ? 'Live' : current?.priceSource === 'Kraken' ? 'Last live quote' : 'Reference quote'}</span> ≈ {formatPrice(pricePerUnit(currentAsset.code, referenceCurrency, fx.data, coins))} <span>{referenceCurrency}</span></div></div>
             <PriceChart key={`${selectedCoin}-${days}-${displayCurrency}`} points={displayedHistory} currency={quote} loading={chart.loading || (historyNeedsFx && fx.loading)} error={historyNeedsFx ? 'An exchange rate is needed for this currency. Refresh market data or choose USD.' : chart.error} retry={historyNeedsFx ? refresh : chart.reload} />
             <div className="chart-stat-grid"><div><span>24H LOW</span><strong>{quote.symbol}{formatPrice(usdToCurrency(current?.low24hUsd, displayCurrency, fx.data))}</strong></div><div><span>24H HIGH</span><strong>{quote.symbol}{formatPrice(usdToCurrency(current?.high24hUsd, displayCurrency, fx.data))}</strong></div><div><span>MARKET CAP</span><strong>{quote.symbol}{compactNumber(usdToCurrency(current?.marketCapUsd, displayCurrency, fx.data))}</strong></div></div>
-            {displayCurrency !== 'USD' && <p className="chart-fx-note">USD history converted to {displayCurrency} using the latest reference FX rate.</p>}
-            <div className="chart-foot"><span>{chart.data ? chart.data.stale || chart.fromCache ? 'Saved history' : `Historical ${displayCurrency} prices` : chart.loading ? 'Loading history' : 'History unavailable'} · {days}-day view</span><span>CoinGecko <Icon name="sparkles" size={12} /></span></div>
+            {displayCurrency !== 'USD' && <p className="chart-fx-note">USD history converted to {displayCurrency} using the latest {rateLabel(fx.data).toLowerCase()} quote.</p>}
+            <div className="chart-foot"><span>{chart.data ? chart.data.stale || chart.fromCache ? 'Saved history' : `Historical ${displayCurrency} prices` : chart.loading ? 'Loading history' : 'History unavailable'} · {days}-day view</span><span>Price history <Icon name="sparkles" size={12} /></span></div>
           </section>
           <Converter fx={fx.data} coins={coins} request={convertRequest} displayCurrency={displayCurrency} forexStale={forexStale} cryptoStale={cryptoStale} />
         </div>
@@ -157,15 +167,15 @@ export default function App() {
               const price = pricePerUnit(asset.code, displayCurrency, fx.data, coins)
               const referencePrice = pricePerUnit(asset.code, referenceCurrency, fx.data, coins)
               const watched = watchlist.includes(asset.code)
-              return <tr key={asset.code}><td className="star-column"><button className={`favorite-button ${watched ? 'is-favorite' : ''}`} onClick={() => toggleWatch(asset.code)} aria-pressed={watched} aria-label={`${watched ? 'Remove' : 'Add'} ${asset.name} ${watched ? 'from' : 'to'} watchlist`}><Icon name="star" size={16} /></button></td><td><button className="asset-cell" onClick={() => chooseConversion(asset.code)} aria-label={`Convert ${asset.name} to ${displayCurrency}`}><AssetBadge asset={asset} /><span><strong>{asset.name}</strong><small>{asset.code} <i>·</i> {asset.type === 'crypto' ? 'Crypto' : 'Currency'}</small></span></button></td><td className="numeric mnt-cell">{formatPrice(price)} <span>{quote.symbol}</span></td><td className="numeric usd-column">{reference.symbol}{formatPrice(referencePrice)}</td><td className="numeric">{asset.type === 'crypto' ? <Change value={coin?.change24h} /> : <span className="daily-reference">Daily reference</span>}</td><td className="trend-column">{asset.type === 'crypto' ? <Sparkline values={coin?.sparkline ?? []} /> : <span className="fx-trend">Daily quote <span>↔</span></span>}</td><td><button className="row-convert" onClick={() => chooseConversion(asset.code)} aria-label={`Open ${asset.code} converter`}><Icon name="arrowUp" size={16} /></button></td></tr>
+              return <tr key={asset.code}><td className="star-column"><button className={`favorite-button ${watched ? 'is-favorite' : ''}`} onClick={() => toggleWatch(asset.code)} aria-pressed={watched} aria-label={`${watched ? 'Remove' : 'Add'} ${asset.name} ${watched ? 'from' : 'to'} watchlist`}><Icon name="star" size={16} /></button></td><td><button className="asset-cell" onClick={() => chooseConversion(asset.code)} aria-label={`Convert ${asset.name} to ${displayCurrency}`}><AssetBadge asset={asset} /><span><strong>{asset.name}</strong><small>{asset.code} <i>·</i> {asset.type === 'crypto' ? <span className={coin?.live ? 'live-asset-label' : ''}>{coin?.live ? 'Live' : coin?.priceSource === 'Kraken' ? 'Last live' : 'Reference'}</span> : rateLabel(fx.data)}</small></span></button></td><td className="numeric mnt-cell"><PriceTick value={price} /> <span className="price-symbol">{quote.symbol}</span></td><td className="numeric usd-column">{reference.symbol}<PriceTick value={referencePrice} /></td><td className="numeric">{asset.type === 'crypto' ? <Change value={coin?.change24h} /> : <span className="daily-reference">{rateLabel(fx.data)}</span>}</td><td className="trend-column">{asset.type === 'crypto' ? <Sparkline values={coin?.sparkline ?? []} /> : <span className="fx-trend">Daily quote <span>↔</span></span>}</td><td><button className="row-convert" onClick={() => chooseConversion(asset.code)} aria-label={`Open ${asset.code} converter`}><Icon name="arrowUp" size={16} /></button></td></tr>
             })}
             {!visibleAssets.length && <tr><td colSpan={7}><div className="empty-assets"><Icon name={filter === 'watchlist' ? 'star' : 'search'} size={26} /><h3>{filter === 'watchlist' && !query ? 'A few stars of your own.' : 'No assets in this orbit.'}</h3><p>{filter === 'watchlist' && !query ? 'Tap the star beside an asset to keep it in your watchlist.' : 'Try another name, currency code, or asset filter.'}</p><button className="text-button" onClick={() => { setQuery(''); setFilter('all') }}>Explore all assets <Icon name="arrow" size={14} /></button></div></td></tr>}
           </tbody></table></div>
           <div className="table-foot"><span>{visibleAssets.length} of {CURRENCIES.length + CRYPTOS.length} assets <i>·</i> All prices per 1 unit</span><span><Icon name="star" size={12} /> Your favorites stay in this browser</span></div>
         </section>
 
-        <div className="source-strip"><div><span className={`status-dot ${fx.error || crypto.error || forexStale || cryptoStale ? 'dot-warning' : ''}`} />{busy ? 'Checking market sources' : fx.error || crypto.error || forexStale || cryptoStale ? 'Some quotes are unavailable or saved' : 'Connected to market sources'}</div><span>FX: {dateTime(fx.data?.updatedAt)} <i>·</i> Crypto: {dateTime(current?.updatedAt)} <i>·</i> UTC+8</span></div>
-        <footer><a className="footer-brand" href="#top"><Icon name="moon" size={15} /> {SITE_NAME}</a><p>Global markets. A local perspective.</p><div><a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates By Exchange Rate API</a><span>·</span><a href="https://www.coingecko.com" target="_blank" rel="noreferrer">CoinGecko</a></div></footer>
+        <div className="source-strip"><div><span className={`status-dot ${fx.error || forexStale || live.status !== 'live' ? 'dot-warning' : ''}`} />{live.status === 'live' ? `${liveCount} crypto pairs streaming` : liveLabel}</div><span>{rateLabel(fx.data)}: {quoteDateLabel(fx.data?.quoteDate)} <i>·</i> Crypto: {quoteTime(current?.updatedAt)} <i>·</i> UTC+8</span></div>
+        <footer><a className="footer-brand" href="#top"><Icon name="moon" size={15} /> {SITE_NAME}</a><p>Global markets. A local perspective.</p><div><button className="text-button" onClick={() => setInfoOpen(true)}>About the data</button><span>·</span><a href="https://www.coingecko.com/en/api" target="_blank" rel="noreferrer">Historical data powered by CoinGecko API</a></div></footer>
       </main>
     </div>
     <DataDialog open={infoOpen} close={() => setInfoOpen(false)} />

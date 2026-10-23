@@ -1,29 +1,15 @@
-import { useId, useRef } from 'react'
-import type { ResolvedTheme, ThemePreference } from '../lib/theme'
-import Icon, { type IconName } from './Icon'
-
-const choices: { value: ThemePreference; label: string; icon: IconName }[] = [
-  { value: 'system', label: 'System', icon: 'display' },
-  { value: 'light', label: 'Light', icon: 'sun' },
-  { value: 'dark', label: 'Dark', icon: 'moon' },
-]
+import { useId } from 'react'
+import { nextThemePreference, type ResolvedTheme, type ThemePreference } from '../lib/theme'
+import Icon from './Icon'
 
 export default function ThemeControl({ preference, resolved, selectTheme }: { preference: ThemePreference; resolved: ResolvedTheme; selectTheme: (mode: ThemePreference) => void }) {
   const id = useId()
-  const refs = useRef<(HTMLButtonElement | null)[]>([])
+  const automatic = preference === 'system'
   return <section className="appearance-control" aria-labelledby={id}>
     <div className="appearance-heading"><span id={id}>Appearance</span><span>{preference === 'system' ? `Auto · ${resolved}` : resolved}</span></div>
-    <div className="appearance-segments" role="radiogroup" aria-label="Color appearance">
-      {choices.map((choice, index) => <button key={choice.value} ref={node => { refs.current[index] = node }} type="button" role="radio" aria-checked={preference === choice.value} aria-label={`${choice.label} appearance`} tabIndex={preference === choice.value ? 0 : -1} onClick={() => selectTheme(choice.value)}
-        onKeyDown={event => {
-          let next = index
-          if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % choices.length
-          else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index + choices.length - 1) % choices.length
-          else if (event.key === 'Home') next = 0
-          else if (event.key === 'End') next = choices.length - 1
-          else return
-          event.preventDefault(); selectTheme(choices[next].value); refs.current[next]?.focus()
-        }}><Icon name={choice.icon} size={15} /><span>{choice.label}</span></button>)}
+    <div className="appearance-buttons">
+      <button type="button" className="appearance-toggle" onClick={() => selectTheme(nextThemePreference(preference, resolved, 'theme'))} aria-label={`Switch to ${resolved === 'dark' ? 'light' : 'dark'} mode`} title="Switch light/dark mode and turn automatic mode off"><Icon name={resolved === 'dark' ? 'moon' : 'sun'} size={17} /><span>{resolved === 'dark' ? 'Dark' : 'Light'} mode</span></button>
+      <button type="button" className={`appearance-auto ${automatic ? 'is-active' : ''}`} onClick={() => selectTheme(nextThemePreference(preference, resolved, 'automatic'))} aria-label="Automatic appearance" aria-pressed={automatic} title={automatic ? 'Automatic on: follows your system. Click to turn off.' : 'Automatic off. Click to follow your system.'}><span className="auto-light" aria-hidden="true" /><span>Auto</span></button>
     </div>
   </section>
 }

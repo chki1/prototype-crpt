@@ -9,8 +9,8 @@ import { normalizeThemePreference, resolveTheme } from '../src/lib/theme.js'
 
 // Synthetic values belong only in tests; the application has no fabricated price fallback.
 const fx: RateSnapshot = {
-  source: 'ExchangeRate-API', rates: { USD: 1, MNT: 3500, CNY: 7, EUR: .9, JPY: 150, KRW: 1300 },
-  updatedAt: '2026-10-22T00:00:00Z', nextUpdateAt: '2026-10-23T00:00:00Z', fetchedAt: '2026-10-22T00:00:00Z',
+  source: 'Bank of Mongolia', rates: { USD: 1, MNT: 3500, CNY: 7, EUR: .9, JPY: 150, KRW: 1300, GBP: .8, RUB: 95, AUD: 1.5, CAD: 1.35, CHF: .85, SGD: 1.3, HKD: 7.8 },
+  updatedAt: '2026-10-22T00:00:00Z', quoteDate: '2026-10-22', fetchedAt: '2026-10-22T00:00:00Z',
 }
 const bitcoin: Coin = { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', priceUsd: 67000, change24h: 1.2, marketCapUsd: null, volume24hUsd: null, high24hUsd: null, low24hUsd: null, sparkline: [], updatedAt: fx.updatedAt }
 
@@ -96,7 +96,7 @@ test('API rejects unsupported resources and arbitrary coin URLs before making a 
 })
 
 function providerRates() {
-  return { result: 'success', base_code: 'USD', rates: fx.rates, time_last_update_unix: Date.parse(fx.updatedAt) / 1000, time_next_update_unix: Date.parse(fx.nextUpdateAt) / 1000 }
+  return { success: true, data: [{ RATE_DATE: fx.quoteDate, ...Object.fromEntries(Object.entries(fx.rates).filter(([code]) => code !== 'MNT').map(([code, value]) => [code, String(fx.rates.MNT / value)])) }] }
 }
 
 test('API coalesces concurrent requests and caches successful data', async () => {
@@ -122,7 +122,7 @@ test('API clearly marks a cached fallback when an expired quote cannot refresh',
 })
 
 test('API refuses malformed provider data and returns an honest unavailable state', async () => {
-  const service = createMarketService(async () => Response.json({ ...providerRates(), rates: { MNT: 0 } }))
+  const service = createMarketService(async () => Response.json({ success: true, data: [{ RATE_DATE: fx.quoteDate, USD: '0', EUR: 'invalid' }] }))
   const response = await service(new URLSearchParams('resource=rates'))
   assert.equal(response.status, 503)
   assert.ok('error' in response.body)
